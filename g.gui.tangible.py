@@ -752,7 +752,10 @@ class TangibleLandscapePlugin(wx.Dialog):
         into r.in.kinect during scanning. Parameter continuous is needed when
         the scanning is supposed to run in loop and not just once"""
         params = {}
-        if self.settings['tangible']['output']['scan']:
+        if self.settings['tangible']['output']['calibrate'] and \
+            self.settings['tangible']['output']['calibration_scan']:
+            params['output'] = self.settings['tangible']['output']['calibration_scan'] + 'tmp'
+        elif self.settings['tangible']['output']['scan']:
             params['output'] = self.settings['tangible']['output']['scan'] + 'tmp'
         # drawing
         if self.settings['tangible']['drawing']['active'] and self.settings['tangible']['drawing']['name']:

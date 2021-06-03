@@ -26,6 +26,8 @@ class OutputPanel(wx.Panel):
         if 'output' not in self.settings:
             self.settings['output'] = {}
             self.settings['output']['scan'] = 'scan'
+            self.settings['output']['calibration_scan'] = 'scan_saved'
+            self.settings['output']['calibrate'] = False
             self.settings['output']['PLY'] = False
             self.settings['output']['PLY_file'] = ''
             self.settings['output']['color'] = False
@@ -37,14 +39,25 @@ class OutputPanel(wx.Panel):
             initDir = os.path.dirname(self.settings['output']['PLY_file'])
         else:
             initDir = ""
+        # added later, must be checked explicitly
+        if 'calibration_scan' not in self.settings['output']:
+            self.settings['output']['calibration_scan'] = 'scan_saved'
+            self.settings['output']['calibrate'] = False
 
         # scan
         self.scan_name = wx.TextCtrl(self)
         self.scan_name.SetValue(self.settings['output']['scan'])
         self.scan_name.Bind(wx.EVT_TEXT, self.OnChange)
         bmp = get_show_layer_icon()
-        self.addScan = wx.BitmapButton(self, bitmap=bmp, size=(bmp.GetWidth() + 12, bmp.GetHeight() + 8))
-        self.addScan.Bind(wx.EVT_BUTTON, lambda evt: self._addLayer('scan'))
+        addScan = wx.BitmapButton(self, bitmap=bmp, size=(bmp.GetWidth() + 12, bmp.GetHeight() + 8))
+        addScan.Bind(wx.EVT_BUTTON, lambda evt: self._addLayer('scan'))
+
+        self.calib_scan_name = wx.TextCtrl(self)
+        self.calib_scan_name.SetValue(self.settings['output']['calibration_scan'])
+        self.calib_scan_name.Bind(wx.EVT_TEXT, self.OnChange)
+        bmp = get_show_layer_icon()
+        addCScan = wx.BitmapButton(self, bitmap=bmp, size=(bmp.GetWidth() + 12, bmp.GetHeight() + 8))
+        addCScan.Bind(wx.EVT_BUTTON, lambda evt: self._addLayer('calib'))
 
         # color
         self.ifColor = wx.CheckBox(self, label=_("Save color rasters (with postfixes _r, _g, _b):"))
@@ -81,7 +94,12 @@ class OutputPanel(wx.Panel):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(wx.StaticText(self, label="Name of scanned raster:"), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=5)
         sizer.Add(self.scan_name, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
-        sizer.Add(self.addScan, proportion=0, flag=wx.EXPAND | wx.RIGHT | wx.TOP | wx.BOTTOM, border=5)
+        sizer.Add(addScan, proportion=0, flag=wx.EXPAND | wx.RIGHT | wx.TOP | wx.BOTTOM, border=5)
+        mainSizer.Add(sizer, flag=wx.EXPAND | wx.ALL, border=5)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(wx.StaticText(self, label="Name of calibration scan raster:"), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=5)
+        sizer.Add(self.calib_scan_name, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
+        sizer.Add(addCScan, proportion=0, flag=wx.EXPAND | wx.RIGHT | wx.TOP | wx.BOTTOM, border=5)
         mainSizer.Add(sizer, flag=wx.EXPAND | wx.ALL, border=5)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.ifColor, flag=wx.ALIGN_CENTER_VERTICAL, border=5)
@@ -101,6 +119,7 @@ class OutputPanel(wx.Panel):
 
     def OnChange(self, event):
         self.settings['output']['scan'] = self.scan_name.GetValue()
+        self.settings['output']['calibration_scan'] = self.calib_scan_name.GetValue()
         self.settings['output']['color'] = self.ifColor.IsChecked()
         self.settings['output']['color_name'] = self.exportColor.GetValue()
         self.settings['output']['blender'] = self.ifBlender.IsChecked()
@@ -115,6 +134,12 @@ class OutputPanel(wx.Panel):
         ll = self.giface.GetLayerList()
         if ltype == 'scan':
             raster = self.scan_name.GetValue()
+            if not raster:
+                return
+            cmd = ['d.rast', 'map=' + raster]
+            ll.AddLayer('raster', name=raster, checked=True, cmd=cmd)
+        elif ltype == 'calib':
+            raster = self.calib_scan_name.GetValue()
             if not raster:
                 return
             cmd = ['d.rast', 'map=' + raster]
